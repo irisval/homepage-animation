@@ -1,6 +1,7 @@
 // myArray[Math.floor(Math.random() * myArray.length)];
-var imgSrcs = ['img/believer.png','img/bmi.jpg','img/delonghi.png','img/el.png','img/fs.png','img/ifba.png','img/mls.png','img/mutti.png','img/nyu.png','img/phaedo.png','img/sv.png','img/tc.jpg']
-var imgs = [];
+var imgs = ['img/believer.png','img/bmi.jpg','img/delonghi.png','img/fs.png','img/ifba.png','img/mls.png','img/el.png','img/mutti.png','img/nyu.png','img/phaedo.png','img/sv.png','img/tc.jpg']
+var loadedImgs = [];
+var imgLen;
 var imgsPlaced = false;
 var gridCells = [];
 var cellWidth;
@@ -15,62 +16,103 @@ var magRadius = lensRadius/2;
 function setup() {
 	rectMode(CENTER);
 	var c = createCanvas(windowWidth*(2/3), windowHeight*(2/3));
-	img = loadImage(imgSrcs[0]);
+	for (var i = 0; i < imgs.length; i++) {
+		loadedImgs.push([loadImage(imgs[i]), Math.floor((Math.random() * (width - 50)) + 1),Math.floor((Math.random() * (height-50)) + 1)]);
+	}
+	imgLen = loadedImgs.length;
 }
 
 
 
 function draw() {
 	background(220);
-	createGrid(40, 40);	
-	// gridCells.forEach(function(c) {
-	// 	c.calcNewPos();
-	// 	// c.drawChar();
-	// })
-	console.log(mouseX);
-	console.log(mouseY);
-	
+	createGrid(30, 30);
 }
 
 
 function createGrid(rows, cols) {
 	cellWidth = width / cols;
 	cellHeight = height / rows;
-	for (var x = 0; x < width; x += cellWidth) {
-		for (var y = 0; y < height; y += cellHeight) {
-			c = new Cell(x, y);
+
+	for (var col = 0; col < cols; col += 1) {
+		for (var row = 0; row < rows; row += 1) {
+			x = cellWidth * col;
+			y = cellHeight * row;
+
+			c = new Cell(x, y, -1);
 			c.draw();
+		}
 	}
-	l = new Logo(width/2, height/2);
-	l.draw();
-}
+
+	
+	var imgCounter = 0;
+	var i;
+	for (var j = 0; j < loadedImgs.length; j++) {
+		
+		i = new Img(imgCounter);
+		i.init();
+		imgCounter++;
+	}
+// var i = new Img(30, 40, 3);
+// i.init();
 }
 
-class Logo {
-	constructor(x, y) {
-		this.startX = x;
-		this.startY = y;
-		this.dist = 0;
+
+class Img {
+	constructor(imgID) {
+		this.imgID = imgID;
+		this.img = loadedImgs[imgID][0];
+		this.initialWidth; 
+		this.initialHeight;
+		this.startX = loadedImgs[imgID][1];
+		this.startY = loadedImgs[imgID][2];
+		this.currX;
+		this.currY;
+		this.dist;
 		this.lensRadius = lensRadius;
 		this.magRadius = magRadius;
-		this.size = initialSize;
+		this.magnify = false;
 	}
-	magnify() {
-		var distX = mouseX - this.startX;
-		var distY = mouseY - this.startY;
+	calcPos() {
+		var distX = mouseX - (this.startX + (this.initialWidth / 2));
+		var distY = mouseY - (this.startY+ (this.initialHeight / 2));
 		this.dist = Math.sqrt((distX * distX) + (distY * distY));
-		if (this.dist < this.lensRadius) {
-			this.lensMag = magAmt * (1 - Math.sin(Math.PI * Math.abs(this.dist / this.lensRadius) / 2));
-		   
-			if (this.dist <= this.magRadius) {
-				 this.size = initialSize * (this.lensMag + 1);
+		if (this.dist > this.lensRadius) {
+			this.currX = this.startX;
+			this.currY = this.startY;
+		} else {
+			this.magnify = true;
+			// var lensDisp = 1 + Math.cos(Math.PI * Math.abs(this.dist / this.lensRadius));
+			console.log("DISTANCE: " + this.dist);
+				
+			if (this.dist < this.magRadius) {
+				this.magnify = true;
 			}
+	
+
+			
+			// this.currX = this.startX - (magAmt * distX * lensDisp / 2.5);
+		 //    this.currY = this.startY - (magAmt * distY * lensDisp / 2.5);
+
 		}
+
+	}
+	init() {
+	
+		this.initialWidth = this.img.width;
+		this.initialHeight = this.img.height;
+		this.calcPos();
+		if (this.magnify) {
+			// image(this.img, this.currX, this.currY, this.initialWidth /4, this.initialHeight / 4);
 		
-	} 
-	draw() {
-		this.magnify();
-		image(img, this.startX, this.startY, (img.width/3) * this.size, (img.height / 3) * this.size);
+			image(this.img, this.startX, this.startY, this.initialWidth /4, this.initialHeight / 4);
+
+			filter(GRAY);
+		
+		} else {
+			image(this.img, this.startX, this.startY, this.initialWidth / 50, this.initialHeight / 50);
+			
+		}
 	}
 }
 
@@ -85,7 +127,7 @@ class Cell {
 		this.magnify = false;
 		this.magRadius = magRadius;
 		this.lensRadius = lensRadius;
-		this.size = initialSize;
+		// this.size = initialSize;
 		this.color = color(68, 68, 68);
 		gridCells.push(this);
 	}
@@ -99,16 +141,17 @@ class Cell {
 			this.currX = this.startX;
 			this.currY = this.startY;
 		} else {
-			this.color = color(253,204,198);
+			// this.color = color(253,204,198);
 			var lensDisp = 1 + Math.cos(Math.PI * Math.abs(this.dist / this.lensRadius));
 			if (this.dist <= this.magRadius) {
 				this.magnify = true;
 			}
+			
 			this.currX = this.startX - (magAmt * distX * lensDisp / 2.5);
 		    this.currY = this.startY - (magAmt * distY * lensDisp / 2.5);
 
-		    this.lensMag = magAmt * (1 - Math.sin(Math.PI * Math.abs(this.distFromInitPos / this.lensRadius) / 2));
-		    this.size = initialSize * (this.lensMag + 1); 
+		    // this.lensMag = magAmt * (1 - Math.sin(Math.PI * Math.abs(this.distFromInitPos / this.lensRadius) / 2));
+		    // this.size = initialSize * (this.lensMag + 1); 
 		}
 	}
 	drawLine() {
@@ -122,19 +165,23 @@ class Cell {
 
 	}
 	draw() {
+		
 		this.calcPos();
 		this.drawLine();
 		stroke(this.color);
 		strokeWeight(0.5);
 		fill(this.color); 
+
+		
 		if (this.magnify) {
-			rect(this.currX,  this.currY, cellWidth/2 * magAmt, cellHeight/2 * magAmt);
+			ellipse(this.currX,  this.currY, cellWidth/2 * magAmt, cellHeight/2 * magAmt);
 		} else {
-			rect(this.currX,  this.currY, cellWidth/2, cellHeight/2);
+			ellipse(this.currX,  this.currY, cellWidth/2, cellHeight/2);
 		}
 		
 		
-		// point(this.startX+(cellWidth/2), this.startY)+(cellHeight/2);
+		
+		//point(this.startX+(cellWidth/2), this.startY)+(cellHeight/2);
 		
 	}
 

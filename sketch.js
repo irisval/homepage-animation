@@ -1,5 +1,5 @@
 // myArray[Math.floor(Math.random() * myArray.length)];
-var imgs = ['img/believer.png','img/bmi.jpg','img/delonghi.png','img/fs.png','img/ifba.png','img/mls.png','img/el.png','img/mutti.png','img/nyu.png','img/phaedo.png','img/sv.png','img/tc.jpg']
+var imgs = ['img/believer.png', 'img/el.png', 'img/fs.png', 'img/google.png', 'img/ifba.png', 'img/li.png', 'img/mls.png', 'img/mutti.png', 'img/nyu.png', 'img/phaedo.png', 'img/sv.png', 'img/yelp.png']
 var loadedImgs = [];
 var imgLen;
 var imgsPlaced = false;
@@ -10,9 +10,15 @@ var lensRadius = 70;
 var magAmt = 1.75;
 var initialSize = 1;
 var magAddition = 2;
-var magRadius = lensRadius/2;
+var magRadius = lensRadius/4;
+
+var r = lensRadius * 0.6;
 
 
+
+function dist() {
+	
+}
 function setup() {
 	rectMode(CENTER);
 	var c = createCanvas(windowWidth*(2/3), windowHeight*(2/3));
@@ -22,6 +28,8 @@ function setup() {
 	imgLen = loadedImgs.length;
 }
 
+
+14 images
 
 
 function draw() {
@@ -53,8 +61,7 @@ function createGrid(rows, cols) {
 		i.init();
 		imgCounter++;
 	}
-// var i = new Img(30, 40, 3);
-// i.init();
+
 }
 
 
@@ -62,20 +69,23 @@ class Img {
 	constructor(imgID) {
 		this.imgID = imgID;
 		this.img = loadedImgs[imgID][0];
-		this.initialWidth; 
-		this.initialHeight;
+		this.initialWidth = this.img.width;
+		this.initialHeight = this.img.height;
+		this.currWidth = this.initialWidth / 50;
+		this.currHeight = this.initialHeight / 50;
 		this.startX = loadedImgs[imgID][1];
 		this.startY = loadedImgs[imgID][2];
 		this.currX;
 		this.currY;
+		this.scaleFactor = 1;
 		this.dist;
 		this.lensRadius = lensRadius;
 		this.magRadius = magRadius;
 		this.magnify = false;
 	}
 	calcPos() {
-		var distX = mouseX - (this.startX + (this.initialWidth / 2));
-		var distY = mouseY - (this.startY+ (this.initialHeight / 2));
+		var distX = mouseX - (this.startX + (this.currWidth / 2));
+		var distY = mouseY - (this.startY + (this.currHeight  / 2));
 		this.dist = Math.sqrt((distX * distX) + (distY * distY));
 		if (this.dist > this.lensRadius) {
 			this.currX = this.startX;
@@ -88,31 +98,23 @@ class Img {
 			if (this.dist < this.magRadius) {
 				this.magnify = true;
 			}
-	
 
-			
-			// this.currX = this.startX - (magAmt * distX * lensDisp / 2.5);
-		 //    this.currY = this.startY - (magAmt * distY * lensDisp / 2.5);
 
 		}
 
 	}
 	init() {
-	
-		this.initialWidth = this.img.width;
-		this.initialHeight = this.img.height;
 		this.calcPos();
 		if (this.magnify) {
-			// image(this.img, this.currX, this.currY, this.initialWidth /4, this.initialHeight / 4);
-		
-			image(this.img, this.startX, this.startY, this.initialWidth /4, this.initialHeight / 4);
-
-			filter(GRAY);
-		
-		} else {
-			image(this.img, this.startX, this.startY, this.initialWidth / 50, this.initialHeight / 50);
-			
+			this.currX = mouseX - (lensRadius / 2);
+			this.currY = this.startY;
+			this.scaleFactor = (lensRadius * 5 / 4) / this.currWidth;
+			this.currWidth = (lensRadius * 5 / 4);
+			this.currHeight = this.currHeight * this.scaleFactor;
+					
 		}
+		image(this.img, this.currX, this.currY, this.currWidth, this.currHeight);
+		filter(GRAY);
 	}
 }
 
@@ -159,6 +161,7 @@ class Cell {
       		var lineOpacity = map(this.dist, 0, this.lensRadius, 200, 0);
 	      	push();
 	      	stroke(180, lineOpacity);
+	      	strokeWeight(1.5);
 	      	line(this.startX, this.startY, this.currX, this.currY);
 	      	pop();
 	    }

@@ -12,24 +12,46 @@ var initialSize = 1;
 var magAddition = 2;
 var magRadius = lensRadius/4;
 
-var r = lensRadius * 0.6;
+var distributionRadius = lensRadius * 0.8;
 
 
-
-function dist() {
-	
-}
 function setup() {
 	rectMode(CENTER);
 	var c = createCanvas(windowWidth*(2/3), windowHeight*(2/3));
 	for (var i = 0; i < imgs.length; i++) {
-		loadedImgs.push([loadImage(imgs[i]), Math.floor((Math.random() * (width - 50)) + 1),Math.floor((Math.random() * (height-50)) + 1)]);
+		loadedImgs.push([loadImage(imgs[i]), placeImg()]);
 	}
 	imgLen = loadedImgs.length;
 }
 
+function placeImg() {
+	
+	var p, x, y,
 
-14 images
+	x = Math.floor((Math.random() * (width - 100)) + 1);
+	y = Math.floor((Math.random() * (height - 100)) + 1);
+
+	var allChecked = false;
+
+	var counter = 0;
+	while (!allChecked && counter < loadedImgs.length) {
+		console.log(imgs.length);
+		console.log(counter);
+		p = loadedImgs[counter][1];
+		if (p.getStartDist(x, y) < distributionRadius) {
+			x = Math.floor((Math.random() * (width - 100)) + 1);
+			y = Math.floor((Math.random() * (height - 100)) + 1);
+			counter = -1;
+		}
+		if (counter == imgs.length - 1) {
+			allChecked = true;
+		} else {
+			counter++;
+		}	
+	}
+	return new Point(x, y);
+}
+
 
 
 function draw() {
@@ -44,37 +66,69 @@ function createGrid(rows, cols) {
 
 	for (var col = 0; col < cols; col += 1) {
 		for (var row = 0; row < rows; row += 1) {
-			x = cellWidth * col;
-			y = cellHeight * row;
-
-			c = new Cell(x, y, -1);
+	
+			p = new Point(cellWidth * col, cellHeight * row);
+			c = new Cell(p);
 			c.draw();
 		}
 	}
 
 	
-	var imgCounter = 0;
-	var i;
-	for (var j = 0; j < loadedImgs.length; j++) {
-		
-		i = new Img(imgCounter);
+	for (var k = 0; k < loadedImgs.length; k++) {
+		i = new Img(loadedImgs[k]);
 		i.init();
-		imgCounter++;
 	}
+	
 
 }
 
 
+
+class Point {
+	constructor(x, y) {
+		this.originalX = x;
+		this.originalY = y;
+		this.x = x;
+		this.y = y;
+	}
+	getStartDist(xb, yb) {
+		return Math.sqrt(Math.pow((xb - this.originalX), 2) +  Math.pow((yb - this.originalY), 2));
+	}
+	getCurrDist(xb, yb) {
+		return Math.sqrt(Math.pow((xb - this.x), 2) +  Math.pow((yb - this.yb), 2));
+	}
+	updateX(xb) {
+		this.x = xb;
+	}
+	updateY(yb) {
+		this.y = yb;
+	}
+	getX() {
+		return this.x;
+	}
+	getY() {
+		return this.y;
+	}
+	getOriginalX() {
+		return this.originalX;
+	}
+	getOriginalY() {
+		return this.originalY;
+	}
+	
+}
+
 class Img {
-	constructor(imgID) {
-		this.imgID = imgID;
-		this.img = loadedImgs[imgID][0];
+	constructor(imgData) {
+		this.img = imgData[0];
+		this.coordinate = imgData[1];
+
+		
 		this.initialWidth = this.img.width;
 		this.initialHeight = this.img.height;
 		this.currWidth = this.initialWidth / 50;
 		this.currHeight = this.initialHeight / 50;
-		this.startX = loadedImgs[imgID][1];
-		this.startY = loadedImgs[imgID][2];
+
 		this.currX;
 		this.currY;
 		this.scaleFactor = 1;
@@ -83,13 +137,18 @@ class Img {
 		this.magRadius = magRadius;
 		this.magnify = false;
 	}
+	updatePoint(xb, yb){
+		this.coordinate.updateX(xb);
+		this.coordinate.updateY(yb);
+	}
 	calcPos() {
-		var distX = mouseX - (this.startX + (this.currWidth / 2));
-		var distY = mouseY - (this.startY + (this.currHeight  / 2));
-		this.dist = Math.sqrt((distX * distX) + (distY * distY));
+		// var distX = mouseX - (this.startX + (this.currWidth / 2));
+		// var distY = mouseY - (this.startY + (this.currHeight  / 2));
+		// this.dist = Math.sqrt((distX * distX) + (distY * distY));
+		this.dist = this.coordinate.getStartDist(mouseX, mouseY);
+
 		if (this.dist > this.lensRadius) {
-			this.currX = this.startX;
-			this.currY = this.startY;
+			this.updatePoint( this.coordinate.getOriginalX(), this.coordinate.getOriginalY());
 		} else {
 			this.magnify = true;
 			// var lensDisp = 1 + Math.cos(Math.PI * Math.abs(this.dist / this.lensRadius));
@@ -106,24 +165,25 @@ class Img {
 	init() {
 		this.calcPos();
 		if (this.magnify) {
-			this.currX = mouseX - (lensRadius / 2);
-			this.currY = this.startY;
+			this.updatePoint(mouseX - (lensRadius / 2),this.coordinate.getOriginalY());
 			this.scaleFactor = (lensRadius * 5 / 4) / this.currWidth;
 			this.currWidth = (lensRadius * 5 / 4);
 			this.currHeight = this.currHeight * this.scaleFactor;
 					
 		}
-		image(this.img, this.currX, this.currY, this.currWidth, this.currHeight);
+		image(this.img, this.coordinate.getX(), this.coordinate.getY(), this.currWidth, this.currHeight);
 		filter(GRAY);
 	}
 }
 
+
+
 class Cell {
-	constructor(x, y) {
-		this.startX = x + (cellWidth/2);
-		this.startY = y + (cellHeight/2);
-		this.currX = x + (cellWidth/2);
-		this.currY = y + (cellHeight/2);
+	constructor(point) {
+		this.point = point;
+		this.startX = point.getOriginalX() + cellWidth/2;
+		this.startY = point.getOriginalY() + cellHeight/2;
+	
 		this.dist = 0;
 		this.magnification = 0;
 		this.magnify = false;
@@ -133,27 +193,23 @@ class Cell {
 		this.color = color(68, 68, 68);
 		gridCells.push(this);
 	}
-
+	updatePoint(xb, yb){
+		this.point.updateX(xb);
+		this.point.updateY(yb);
+	}
 	calcPos() {
 		var distX = mouseX - this.startX;
 		var distY = mouseY - this.startY;
-		this.dist = Math.sqrt((distX * distX) + (distY * distY));
+		this.dist = this.point.getStartDist(mouseX, mouseY);
 
 		if (this.dist > this.lensRadius) {
-			this.currX = this.startX;
-			this.currY = this.startY;
+			this.updatePoint(this.startX, this.startY);
 		} else {
-			// this.color = color(253,204,198);
 			var lensDisp = 1 + Math.cos(Math.PI * Math.abs(this.dist / this.lensRadius));
 			if (this.dist <= this.magRadius) {
 				this.magnify = true;
 			}
-			
-			this.currX = this.startX - (magAmt * distX * lensDisp / 2.5);
-		    this.currY = this.startY - (magAmt * distY * lensDisp / 2.5);
-
-		    // this.lensMag = magAmt * (1 - Math.sin(Math.PI * Math.abs(this.distFromInitPos / this.lensRadius) / 2));
-		    // this.size = initialSize * (this.lensMag + 1); 
+			this.updatePoint((this.startX - (magAmt * distX * lensDisp / 2.5)),(this.startY - (magAmt * distY * lensDisp / 2.5)))
 		}
 	}
 	drawLine() {
@@ -162,7 +218,7 @@ class Cell {
 	      	push();
 	      	stroke(180, lineOpacity);
 	      	strokeWeight(1.5);
-	      	line(this.startX, this.startY, this.currX, this.currY);
+	      	line(this.startX, this.startY, this.point.getX(), this.point.getY());
 	      	pop();
 	    }
 
@@ -177,9 +233,9 @@ class Cell {
 
 		
 		if (this.magnify) {
-			ellipse(this.currX,  this.currY, cellWidth/2 * magAmt, cellHeight/2 * magAmt);
+			ellipse(this.point.getX(), this.point.getY(), cellWidth/2 * magAmt, cellHeight/2 * magAmt);
 		} else {
-			ellipse(this.currX,  this.currY, cellWidth/2, cellHeight/2);
+			ellipse(this.point.getX(), this.point.getY(), cellHeight/2);
 		}
 		
 		

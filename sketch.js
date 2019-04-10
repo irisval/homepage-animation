@@ -26,7 +26,7 @@ function setup() {
 
 function placeImg() {
 	
-	var p, x, y,
+	var p, x, y
 
 	x = Math.floor((Math.random() * (width - 100)) + 1);
 	y = Math.floor((Math.random() * (height - 100)) + 1);
@@ -35,8 +35,7 @@ function placeImg() {
 
 	var counter = 0;
 	while (!allChecked && counter < loadedImgs.length) {
-		console.log(imgs.length);
-		console.log(counter);
+		
 		p = loadedImgs[counter][1];
 		if (p.getStartDist(x, y) < distributionRadius) {
 			x = Math.floor((Math.random() * (width - 100)) + 1);
@@ -84,6 +83,19 @@ function createGrid(rows, cols) {
 
 
 
+var buf = new ArrayBuffer(4);
+var f32=new Float32Array(buf);
+var u32=new Uint32Array(buf);
+
+function fastSqrt(x) {
+	var x2 = 0.5 * (f32[0] = x);
+  	u32[0] = (0x5f3759df - (u32[0] >> 1));
+  	var y = f32[0];
+  	y  = y * ( 1.5 - ( x2 * y * y ) );   // 1st iteration
+  	return 1/y;
+}
+
+
 class Point {
 	constructor(x, y) {
 		this.originalX = x;
@@ -92,10 +104,14 @@ class Point {
 		this.y = y;
 	}
 	getStartDist(xb, yb) {
-		return Math.sqrt(Math.pow((xb - this.originalX), 2) +  Math.pow((yb - this.originalY), 2));
+		return fastSqrt(Math.pow((xb - this.originalX), 2) +  Math.pow((yb - this.originalY), 2));
+
+		//return Math.sqrt(Math.pow((xb - this.originalX), 2) +  Math.pow((yb - this.originalY), 2));
 	}
 	getCurrDist(xb, yb) {
-		return Math.sqrt(Math.pow((xb - this.x), 2) +  Math.pow((yb - this.yb), 2));
+		return fastSqrt(Math.pow((xb - this.x), 2) +  Math.pow((yb - this.yb), 2));
+
+		//return Math.sqrt(Math.pow((xb - this.x), 2) +  Math.pow((yb - this.yb), 2));
 	}
 	updateX(xb) {
 		this.x = xb;
@@ -149,28 +165,20 @@ class Img {
 
 		if (this.dist > this.lensRadius) {
 			this.updatePoint( this.coordinate.getOriginalX(), this.coordinate.getOriginalY());
-		} else {
-			this.magnify = true;
-			// var lensDisp = 1 + Math.cos(Math.PI * Math.abs(this.dist / this.lensRadius));
-			console.log("DISTANCE: " + this.dist);
-				
+		} else {	
 			if (this.dist < this.magRadius) {
 				this.magnify = true;
+				this.updatePoint(mouseX - (lensRadius / 2),this.coordinate.getOriginalY());
+				this.scaleFactor = (lensRadius * 5 / 4) / this.currWidth;
+				this.currWidth = (lensRadius * 5 / 4);
+				this.currHeight = this.currHeight * this.scaleFactor;
 			}
-
-
 		}
 
 	}
 	init() {
 		this.calcPos();
-		if (this.magnify) {
-			this.updatePoint(mouseX - (lensRadius / 2),this.coordinate.getOriginalY());
-			this.scaleFactor = (lensRadius * 5 / 4) / this.currWidth;
-			this.currWidth = (lensRadius * 5 / 4);
-			this.currHeight = this.currHeight * this.scaleFactor;
-					
-		}
+		
 		image(this.img, this.coordinate.getX(), this.coordinate.getY(), this.currWidth, this.currHeight);
 		filter(GRAY);
 	}
